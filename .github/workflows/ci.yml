@@ -7,15 +7,40 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: CXX=clang++ ./scripts/test-portable.sh
+      - uses: ammaraskar/gcc-problem-matcher@master
+      - name: portable tests
+        shell: bash
+        run: |
+          set +e
+          out=$(CXX=clang++ ./scripts/test-portable.sh 2>&1); rc=$?
+          echo "$out"
+          if [ $rc -ne 0 ]; then echo "$out" | grep -E 'FAIL|error' | head -20 | while read -r l; do echo "::error title=portable-tests::$l"; done; fi
+          exit $rc
   windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - run: cmake -S . -B build -A x64
-      - run: cmake --build build --config Release --parallel
-      - run: ctest --test-dir build -C Release --output-on-failure
-      - run: build\Release\mm-core.exe list
+      - uses: ammaraskar/msvc-problem-matcher@master
+      - name: configure
+        run: cmake -S . -B build -A x64
+      - name: build
+        run: cmake --build build --config Release --parallel
+      - name: tests
+        shell: pwsh
+        run: |
+          $out = ctest --test-dir build -C Release --output-on-failure 2>&1 | Out-String
+          Write-Host $out
+          if ($LASTEXITCODE -ne 0) {
+            ($out -split "`n" | Select-String -Pattern 'FAIL|Failed|error' | Select-Object -First 20) | ForEach-Object { Write-Host "::error title=ctest::$_" }
+            exit 1
+          }
+      - name: smoke
+        shell: pwsh
+        run: |
+          $out = & build\Release\mm-core.exe list 2>&1 | Out-String
+          Write-Host $out
+          $first = ($out -split "`n")[0]
+          Write-Host "::notice title=mm-core list::$first"
       - uses: actions/upload-artifact@v4
         with:
           name: mm-core-win64
