@@ -41,7 +41,7 @@ if(WIN32)
     core/src/win/window.cpp
     core/src/win/broadcaster.cpp)
   target_link_libraries(mm_win PUBLIC mm_portable user32 dwmapi)
-  target_compile_definitions(mm_win PUBLIC UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX _WIN32_WINNT=0x0A00)
+  target_compile_definitions(mm_win PUBLIC UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX _WIN32_WINNT=0x0A00 WINVER=0x0A00 NTDDI_VERSION=0x0A000006)
 
   add_executable(mm-core core/tools/mm_core.cpp)
   target_link_libraries(mm-core PRIVATE mm_win)

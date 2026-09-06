@@ -17,6 +17,12 @@
 #ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0A00  // Windows 10+: EcoQoS, per-monitor DPI v2
 #endif
+#ifndef WINVER
+#define WINVER 0x0A00
+#endif
+#ifndef NTDDI_VERSION
+#define NTDDI_VERSION 0x0A000006  // NTDDI_WIN10_RS5: newer than every API used here
+#endif
 #include <windows.h>
 
 #include <string>
