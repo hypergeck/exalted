@@ -1,0 +1,11 @@
+build/
+out/
+bin/
+obj/
+.vs/
+.vscode/
+*.user
+*.suo
+*.log
+.DS_Store
+CMakeUserPresets.json
