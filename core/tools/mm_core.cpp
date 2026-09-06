@@ -315,7 +315,7 @@ int cmd_run(const Args& a) {
 
     // --- routes
     auto routes = std::make_shared<Routes>();
-    const Strategy strategy = a.get_or("strategy", "focus") == "post" ? Strategy::PostMessage : Strategy::FocusCycle;
+    const Strategy strategy = a.get_or("strategy", "focus") == "post" ? Strategy::WindowMessage : Strategy::FocusCycle;
     for (const auto& k : split_list(a.get_or("keys", ""))) {
         const auto vk = parse_key(k);
         if (!vk) { std::printf("warning: unknown key '%s'\n", k.c_str()); continue; }
@@ -368,7 +368,7 @@ int cmd_run(const Args& a) {
 
     std::printf("running: %zu instances, master=%zu, %zu keys mirrored, swap=%s, strategy=%s. Ctrl+C to stop.\n",
                 s.instances.size(), s.master(), routes->keys().size(), key_name(routes->swap_hotkey_vk).c_str(),
-                strategy == Strategy::PostMessage ? "PostMessage" : "focus+SendInput");
+                strategy == Strategy::WindowMessage ? "PostMessage" : "focus+SendInput");
 
     const DWORD stats_every = static_cast<DWORD>(a.get_int("stats-every", 5)) * 1000;
     while (!g_stop.load()) {

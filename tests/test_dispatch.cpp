@@ -13,7 +13,7 @@ static int count(const Plan& p, ActionKind k) {
 static void run_tests() {
     Routes r;
     r.add_key(KeyBinding{'1', kAllTargets, Strategy::FocusCycle, false});
-    r.add_key(KeyBinding{'2', target_bit(2), Strategy::PostMessage, false});
+    r.add_key(KeyBinding{'2', target_bit(2), Strategy::WindowMessage, false});
     r.add_key(KeyBinding{'H', kAllTargets, Strategy::FocusCycle, true});
     r.swap_hotkey_vk = 0x7B;  // F12
     r.mouse_targets = kAllTargets;
@@ -61,7 +61,7 @@ static void run_tests() {
     p = plan(key(EventKind::KeyDown, '2'), r, alive, master, keys);
     CHECK_EQ(count(p, ActionKind::Deliver), 1);
     CHECK_EQ(count(p, ActionKind::RestoreFocus), 0);
-    CHECK(p.actions[0].strategy == Strategy::PostMessage);
+    CHECK(p.actions[0].strategy == Strategy::WindowMessage);
 
     // Swap hotkey: only on key down, always swallowed.
     p = plan(key(EventKind::KeyDown, 0x7B), r, alive, master, keys);

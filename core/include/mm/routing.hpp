@@ -10,7 +10,7 @@ namespace mm {
 
 enum class Strategy : uint8_t {
     FocusCycle  = 0,  // SetForegroundWindow + SendInput (works for Unity; costs a focus switch per target)
-    PostMessage = 1,  // PostMessage to the HWND (no focus change; Unity usually ignores it for gameplay keys)
+    WindowMessage = 1,  // PostMessage to the HWND (named so the Win32 PostMessage macro cannot rewrite it) (no focus change; Unity usually ignores it for gameplay keys)
 };
 
 using TargetMask = uint32_t;                     // bit i = instance i (max 32 instances)

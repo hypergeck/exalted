@@ -123,7 +123,7 @@ void Broadcaster::deliver(const Action& a, const InputEvent& ev) {
     const HWND hwnd = targets_[a.target].hwnd;
     bool ok = true;
 
-    if (a.strategy == Strategy::PostMessage) {
+    if (a.strategy == Strategy::WindowMessage) {
         if (is_key(ev.kind)) {
             ok = post_key(hwnd, ev.vk, ev.scan, ev.kind == EventKind::KeyDown, ev.flags);
         } else {

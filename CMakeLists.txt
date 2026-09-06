@@ -11,7 +11,7 @@ add_library(mm_portable INTERFACE)
 target_include_directories(mm_portable INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/core/include)
 
 if(MSVC)
-  add_compile_options(/W4 /permissive- /utf-8)
+  add_compile_options(/W4 /permissive- /utf-8 /wd4324)  # C4324: padding from alignas(64) is intentional
 else()
   add_compile_options(-Wall -Wextra)
 endif()
