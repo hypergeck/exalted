@@ -27,6 +27,10 @@ Milestones 0–2 of the roadmap are implemented as a single Windows CLI, `mm-cor
 
 Not yet: the UI, the named-pipe/shared-memory IPC (M3), profiles, account storage.
 
+Milestone 0 and the Milestone 1 exit test were run on 2026-09-08 against client 7.0.0.2.0;
+the results, the latency numbers, and their impact on the roadmap are in
+[docs/M0-FINDINGS.md](docs/M0-FINDINGS.md).
+
 ## Layout
 
 ```

@@ -9,6 +9,12 @@
 //                         [--keys W,A,S,D,1,2,3] [--strategy focus|post] [--mouse-modifier CAPSLOCK]
 //                         [--swap-key F12] [--slave-priority normal|below|idle] [--slave-eco]
 //                         [--slave-cpu-cap PCT] [--kill-on-exit] [--click-settle-ms 0] [--stats-every 5]
+//                         [--duration-s N] [--accept-injected] [--attach] [--focus-wait-ms 20]
+//   --attach           use AttachThreadInput when switching focus (off by default: ~200 ms per switch)
+//   --focus-wait-ms N  how long to wait for a focus switch to land before injecting (default 20)
+//   --duration-s N     stop cleanly after N seconds (default: run until Ctrl+C)
+//   --accept-injected  capture keys/clicks injected by other software (macro tools, test
+//                      drivers) as if they were physical; our own output is still filtered
 #include <atomic>
 #include <cstdio>
 #include <cstdlib>
@@ -334,11 +340,14 @@ int cmd_run(const Args& a) {
     Broadcaster broadcaster(ring, wake.get());
     ForegroundLockGuard lock_guard;
 
+    if (a.has("accept-injected")) capture.set_accept_foreign_injected(true);
+    if (a.has("attach")) set_use_attach_thread_input(true);
     for (const auto& b : routes->keys()) if (b.swallow) capture.set_swallow(b.vk, true);
     if (routes->swap_hotkey_vk) capture.set_swallow(routes->swap_hotkey_vk, true);
     broadcaster.set_routes(routes);
     broadcaster.set_targets(s.targets(), static_cast<uint32_t>(s.master()));
     broadcaster.set_click_settle_ms(static_cast<unsigned>(a.get_int("click-settle-ms", 0)));
+    broadcaster.set_focus_wait_ms(static_cast<unsigned>(a.get_int("focus-wait-ms", 20)));
     broadcaster.set_on_swap([&] {
         std::size_t next;
         {
@@ -369,10 +378,14 @@ int cmd_run(const Args& a) {
     std::printf("running: %zu instances, master=%zu, %zu keys mirrored, swap=%s, strategy=%s. Ctrl+C to stop.\n",
                 s.instances.size(), s.master(), routes->keys().size(), key_name(routes->swap_hotkey_vk).c_str(),
                 strategy == Strategy::WindowMessage ? "PostMessage" : "focus+SendInput");
+    std::fflush(stdout);
 
     const DWORD stats_every = static_cast<DWORD>(a.get_int("stats-every", 5)) * 1000;
+    const long long duration_s = a.get_int("duration-s", 0);
+    const ULONGLONG deadline = duration_s > 0 ? GetTickCount64() + static_cast<ULONGLONG>(duration_s) * 1000 : 0;
     while (!g_stop.load()) {
         if (WaitForSingleObject(stop_event.get(), stats_every ? stats_every : 1000) == WAIT_OBJECT_0) break;
+        if (deadline && GetTickCount64() >= deadline) { std::puts("duration reached"); break; }
 
         // Watchdog: notice clients that died, free their slot in the broadcaster.
         bool changed = false;
@@ -398,13 +411,18 @@ int cmd_run(const Args& a) {
                         static_cast<unsigned long long>(c.captured), static_cast<unsigned long long>(c.dropped),
                         static_cast<unsigned long long>(b.deliveries), b.latency.percentile_us(50), b.latency.percentile_us(99),
                         b.latency.max_us(), static_cast<unsigned long long>(b.focus_failures), static_cast<unsigned long long>(b.inject_failures));
+            std::fflush(stdout);  // stats must survive a hang or a kill when stdout is a file
         }
     }
 
     std::puts("stopping...");
+    std::fflush(stdout);
     capture.stop();
-    broadcaster.stop();
+    const bool joined = broadcaster.stop(3000);
+    if (!joined) std::puts("warning: broadcaster thread did not stop within 3 s; abandoning it");
     for (auto& inst : s.instances) if (!inst.exited) restore_style(inst.hwnd, inst.saved);
+    std::fflush(stdout);
+    if (!joined) std::_Exit(3);  // never hang on a stuck focus call at shutdown
     return 0;
 }
 

@@ -37,11 +37,17 @@ bool Broadcaster::start() {
     return true;
 }
 
-void Broadcaster::stop() {
-    if (!thread_.joinable()) return;
+bool Broadcaster::stop(unsigned join_timeout_ms) {
+    if (!thread_.joinable()) return true;
     stop_.store(true);
     SetEvent(wake_);
-    thread_.join();
+    if (join_timeout_ms == 0 ||
+        WaitForSingleObject(reinterpret_cast<HANDLE>(thread_.native_handle()), join_timeout_ms) == WAIT_OBJECT_0) {
+        thread_.join();
+        return true;
+    }
+    thread_.detach();  // stuck inside a focus/inject call; the caller decides what to do
+    return false;
 }
 
 Broadcaster::Snapshot Broadcaster::snapshot() const {
@@ -93,7 +99,7 @@ void Broadcaster::execute(const Plan& p, const InputEvent& ev) {
             deliver(a, ev);
             break;
         case ActionKind::RestoreFocus:
-            if (master_ < targets_.size() && !bring_to_foreground(targets_[master_].hwnd)) {
+            if (master_ < targets_.size() && !bring_to_foreground(targets_[master_].hwnd, focus_wait_ms_.load(std::memory_order_relaxed))) {
                 std::lock_guard lock(stats_mu_);
                 ++stats_.focus_failures;
             }
@@ -137,7 +143,7 @@ void Broadcaster::deliver(const Action& a, const InputEvent& ev) {
             }
         }
     } else {
-        if (!bring_to_foreground(hwnd)) {
+        if (!bring_to_foreground(hwnd, focus_wait_ms_.load(std::memory_order_relaxed))) {
             std::lock_guard lock(stats_mu_);
             ++stats_.focus_failures;
             return;  // injecting now would hit whatever is foreground instead

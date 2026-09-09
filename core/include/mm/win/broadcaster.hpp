@@ -35,12 +35,15 @@ public:
     // Milliseconds to wait between moving the cursor and clicking on a
     // target (Unity samples the cursor once per frame). 0 = none.
     void set_click_settle_ms(unsigned ms) noexcept { click_settle_ms_.store(ms, std::memory_order_relaxed); }
+    // How long to wait for a focus switch to take effect before injecting (default 20 ms: a Unity frame plus slack).
+    void set_focus_wait_ms(unsigned ms) noexcept { focus_wait_ms_.store(ms, std::memory_order_relaxed); }
 
     // Invoked on the broadcaster thread when the swap hotkey is pressed.
     void set_on_swap(std::function<void()> cb);
 
     bool start();
-    void stop();
+    // Returns false if the worker did not stop within join_timeout_ms (0 = wait forever); it is then detached.
+    bool stop(unsigned join_timeout_ms = 0);
 
     struct Snapshot {
         LatencyStats latency;      // capture -> delivered, per target delivery
@@ -79,6 +82,7 @@ private:
     uint64_t seen_version_ = 0;
     KeyState master_keys_;
     std::atomic<unsigned> click_settle_ms_{0};
+    std::atomic<unsigned> focus_wait_ms_{20};
 
     mutable std::mutex stats_mu_;
     Snapshot stats_;

@@ -42,6 +42,11 @@ public:
     // are never broadcast.
     void set_capture_mouse_moves(bool on) noexcept { capture_moves_.store(on, std::memory_order_relaxed); }
 
+    // Off by default: events carrying LLKHF_INJECTED/LLMHF_INJECTED from other software
+    // (macro tools, test drivers) are ignored. On, they are captured like physical input;
+    // our own output is still dropped by the dwExtraInfo magic.
+    void set_accept_foreign_injected(bool on) noexcept { accept_foreign_.store(on, std::memory_order_relaxed); }
+
     struct Stats {
         uint64_t captured = 0;
         uint64_t dropped = 0;        // ring was full
@@ -70,6 +75,7 @@ private:
     KeyState keys_;  // hook-thread only: auto-repeat filter
     std::array<std::atomic<bool>, 256> swallow_{};
     std::atomic<bool> capture_moves_{false};
+    std::atomic<bool> accept_foreign_{false};
     std::atomic<uint64_t> captured_{0}, dropped_{0}, injected_seen_{0};
 };
 

@@ -100,7 +100,8 @@ void Capture::publish(const InputEvent& ev) noexcept {
 }
 
 bool Capture::on_key(WPARAM msg, const KBDLLHOOKSTRUCT& k) noexcept {
-    if (k.dwExtraInfo == kInjectMagic || (k.flags & LLKHF_INJECTED)) {
+    if (k.dwExtraInfo == kInjectMagic ||
+        ((k.flags & LLKHF_INJECTED) && !accept_foreign_.load(std::memory_order_relaxed))) {
         injected_seen_.fetch_add(1, std::memory_order_relaxed);
         return false;  // never loop our own output back, never block it
     }
@@ -126,7 +127,8 @@ bool Capture::on_key(WPARAM msg, const KBDLLHOOKSTRUCT& k) noexcept {
 }
 
 bool Capture::on_mouse(WPARAM msg, const MSLLHOOKSTRUCT& m) noexcept {
-    if (m.dwExtraInfo == kInjectMagic || (m.flags & LLMHF_INJECTED)) {
+    if (m.dwExtraInfo == kInjectMagic ||
+        ((m.flags & LLMHF_INJECTED) && !accept_foreign_.load(std::memory_order_relaxed))) {
         injected_seen_.fetch_add(1, std::memory_order_relaxed);
         return false;
     }
